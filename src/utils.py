@@ -481,8 +481,11 @@ def summarize_predictions(df_raw, timestamp_path, DENSITY_CONSTANT):
 
         background_df = df_raw[df_raw['id'].astype(str).str.contains("Background.tif")].copy()
         if not background_df.empty:
-            lat, lon = get_geographic_data(background_df['id'].iloc[0])
-            summary_df[['lat', 'lon']] = lat, lon
+            try:
+                lat, lon = get_geographic_data(background_df['id'].iloc[0])
+                summary_df[['lat', 'lon']] = lat, lon
+            except TypeError:
+                summary_df[['lat', 'lon']] = None, None
         else:
             summary_df[['lat', 'lon']] = None, None
 
