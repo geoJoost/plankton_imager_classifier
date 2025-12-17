@@ -41,7 +41,7 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
-        '--density_constant',
+        '--volume',
         type=int, default=340,
         help='Density constant for normalization to get results in units per liter.'
     )
@@ -58,7 +58,7 @@ if __name__ == "__main__":
     MODEL_NAME = args.model_name
     BATCH_SIZE = args.batch_size
     CRUISE_NAME = args.cruise_name
-    DENSITY_CONSTANT = args.density_constant
+    VOLUME = args.volume
     CLASSIFICATION_SUBSAMPLE = args.classification_subsample
     print("[INFO] Arguments received:", args, flush=True)
 
@@ -89,7 +89,7 @@ if __name__ == "__main__":
                                                             TRAIN_DATASET, # Training dataset required for FastAI
                                                             CRUISE_NAME, # User-defined variable used for outputs
                                                             BATCH_SIZE,  # User-defined variable, how much images to process per batch
-                                                            DENSITY_CONSTANT, # 340L per 10 minutes passing through Pi-10
+                                                            VOLUME, # 340L per 10 minutes passing through Pi-10
                                                             CLASSIFICATION_SUBSAMPLE, # Percentage of images to process
                                                             )
 
@@ -97,7 +97,7 @@ if __name__ == "__main__":
     get_random_samples(results_dir,  CRUISE_NAME, TRAIN_DATASET, model_weights, n_images=100)
 
     # Generate the Word document detailing the cruise
-    document_path = create_word_document(results_dir, CRUISE_NAME, DENSITY_CONSTANT, TRAIN_DATASET, model_weights)
+    document_path = create_word_document(results_dir, CRUISE_NAME, VOLUME, TRAIN_DATASET, model_weights)
 
     # Convert outputs to Darwin Core format
     # Not implemented yet

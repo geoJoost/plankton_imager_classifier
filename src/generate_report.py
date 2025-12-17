@@ -108,7 +108,7 @@ def get_datetime_min_max(lazy_df, datetime_col):
     return min_date, max_date, hours
 
 # General data description
-def compute_class_statistics(df, total_images, DENSITY_CONSTANT):
+def compute_class_statistics(df, total_images, VOLUME):
     # Get unique class IDs
     class_ids = df['pred_id'].unique()
 
@@ -223,7 +223,7 @@ def create_cruise_path(lazy_df, CRUISE_NAME):
 
 # Automated report
 # @profile
-def create_word_document(results_dir, CRUISE_NAME, DENSITY_CONSTANT, TRAIN_DATASET, MODEL_FILENAME):
+def create_word_document(results_dir, CRUISE_NAME, VOLUME, TRAIN_DATASET, MODEL_FILENAME):
     print(f"[INFO] Reading DataFrames in folder: {results_dir}")
 
     # Get prediction labels for post-processing
@@ -303,7 +303,7 @@ def create_word_document(results_dir, CRUISE_NAME, DENSITY_CONSTANT, TRAIN_DATAS
         subset_df = create_datetime_polars(subset_df)
 
         # 1. Compute and store statistics (number of predictions, density, model confidence)
-        stats_dict = compute_class_statistics(subset_df, total_rows, DENSITY_CONSTANT)
+        stats_dict = compute_class_statistics(subset_df, total_rows, VOLUME)
         class_stats.append(stats_dict) # Single row per class
 
         # 2. Generate figure on model confidence compared to top-5 related classes
@@ -367,7 +367,7 @@ def create_word_document(results_dir, CRUISE_NAME, DENSITY_CONSTANT, TRAIN_DATAS
         "This automated report provides an overview of the data processed using the ResNet50 model developed by van Walraven et al. (in prep), see method section. "+
         "The report contains information on the number of images per class, density statistics (N/L), and the model confidence in predicting the class. " +
         "Moreover, figures are created on the 10-minute bins of detected objects visualized in density and spatio-temporal plots. " +
-        f"A first attempt at deriving an index of patchiness is provided as well, through dividing the number of images by {DENSITY_CONSTANT}, corresponding to the volume of water (in L) flowing through " +
+        f"A first attempt at deriving an index of patchiness is provided as well, through dividing the number of images by {VOLUME}, corresponding to the volume of water (in L) flowing through " +
         "the Plankton Imager in 10 minutes."
     )
 

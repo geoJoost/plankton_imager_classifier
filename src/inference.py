@@ -17,7 +17,7 @@ import random
 from src.remove_corrupted_files import process_corrupted_files
 from src.utils import process_predictions_to_dataframe
 
-def conduct_plankton_inference(SOURCE_BASE_DIR, MODEL_NAME, model_weights, TRAIN_DATASET, CRUISE_NAME, BATCH_SIZE, DENSITY_CONSTANT, CLASSIFICATION_SUBSAMPLE=100):
+def conduct_plankton_inference(SOURCE_BASE_DIR, MODEL_NAME, model_weights, TRAIN_DATASET, CRUISE_NAME, BATCH_SIZE, VOLUME, CLASSIFICATION_SUBSAMPLE=100):
     print(f"[INFO] Started inference...", flush=True)
     start_time = time.time()
     np.random.seed(42)
@@ -190,7 +190,7 @@ def conduct_plankton_inference(SOURCE_BASE_DIR, MODEL_NAME, model_weights, TRAIN
                             timestamp_path=timestamp_path,
                             results_dir=results_dir,
                             processed_dir=processed_dir,
-                            density_constant=DENSITY_CONSTANT,
+                            volume=VOLUME,
                             csv_filename=csv_filename,
                             tar_file_path=tar_file_path # Path to original .tar file
                         )

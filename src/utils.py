@@ -406,14 +406,14 @@ def get_geographic_data(image_path):
 
             return latitude, longitude
 
-def summarize_predictions(df_raw, timestamp_path, DENSITY_CONSTANT):
+def summarize_predictions(df_raw, timestamp_path, VOLUME):
     """
     Generate a summary dataframe with aggregated statistics from the detailed predictions.
 
     Args:
         df_raw: DataFrame containing detailed prediction results
         timestamp_path: Path to directory containing additional files (HitsMisses.txt)
-        DENSITY_CONSTANT: Constant used for density calculations
+        VOLUME: Constant used for density calculations
 
     Returns:
         tuple: (summary DataFrame, column order list)
@@ -468,8 +468,8 @@ def summarize_predictions(df_raw, timestamp_path, DENSITY_CONSTANT):
                 print(f"[INFO] Hits: {total_hits:,} | Misses: {total_misses:,}")
 
                 # Calculate density in N/L
-                summary_df['density'] = (summary_df['total_counts'] / summary_df['subsample_factor']) / DENSITY_CONSTANT
-                print(f"[DEBUG] Density:\n{summary_df[['pred_label','density']]}")
+                summary_df['density'] = (summary_df['total_counts'] / summary_df['subsample_factor']) / VOLUME
+                print(f"[INFO] Density:\n{summary_df[['pred_label','density']]}")
 
         else:
             summary_df['subsample_factor'] = 0
@@ -498,7 +498,7 @@ def summarize_predictions(df_raw, timestamp_path, DENSITY_CONSTANT):
         return empty_summary, columns_order
 
 def process_predictions_to_dataframe(imgs, preds, label_numeric, vocab, cruise_name, date_str, time_str,
-                                    timestamp_path, results_dir, processed_dir, density_constant, csv_filename, tar_file_path):
+                                    timestamp_path, results_dir, processed_dir, volume, csv_filename, tar_file_path):
     """
     Process prediction results into DataFrames and save to CSV files.
 
@@ -513,7 +513,7 @@ def process_predictions_to_dataframe(imgs, preds, label_numeric, vocab, cruise_n
         timestamp_path: Path to the directory containing additional files (HitsMisses.txt, etc.)
         results_dir: Directory to save detailed CSV results
         processed_dir: Directory to save summary CSV results
-        density_constant: Constant used for density calculations
+        volume: Constant used for density calculations
         csv_filename: Path for the detailed CSV file to save
         tar_file_path: Path to the original tar file
 
@@ -551,7 +551,7 @@ def process_predictions_to_dataframe(imgs, preds, label_numeric, vocab, cruise_n
         df_raw[f"{class_name}_conf"] = preds.numpy()[:, class_id]
 
     # Generate a summarized version of the report for each 10-minute bin
-    summary_df, columns_order = summarize_predictions(df_raw, timestamp_path, density_constant)
+    summary_df, columns_order = summarize_predictions(df_raw, timestamp_path, volume)
 
     # Create filename for the summary CSV
     csv_filename_summarized = processed_dir / f"{cruise_name}_{date_str}_{time_str}_summary.csv"
