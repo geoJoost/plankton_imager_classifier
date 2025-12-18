@@ -13,13 +13,14 @@ import time
 # Custom imports
 from src.utils import save_data_visualizations,  save_evaluation_visualizations
 
-def train_resnet50(MODEL_NAME, MODEL_TYPE, TRAIN_DATASET, BATCH_SIZE, OUTPUT_NAME):
+def train_resnet50(MODEL_NAME, MODEL_TYPE, TRAIN_DATASET, BATCH_SIZE):
     np.random.seed(3)
 
     # Create new folder in /models/ to save .pth files
     # FastAI hard-codes the model part, so have to seperate this for re-use down the line
-    models_root = f"{datetime.today().strftime('%Y-%m-%d')}_{MODEL_NAME}" # Use today's date for future note keeping
-    os.makedirs(os.path.join('models', models_root), exist_ok=True) # TODO: Prevent overwriting of models
+    timestamp = datetime.today().strftime('%Y%m%d_%H%M')
+    models_root = f"{timestamp}_{MODEL_NAME}" # Use today's date for future note keeping
+    os.makedirs(os.path.join('models', models_root), exist_ok=True)
 
     images_root = os.path.join('train', models_root)
     os.makedirs(images_root, exist_ok=True)
@@ -59,10 +60,14 @@ def train_resnet50(MODEL_NAME, MODEL_TYPE, TRAIN_DATASET, BATCH_SIZE, OUTPUT_NAM
 
     # Create Learner
     if MODEL_TYPE == "ResNet18":
-        learn = vision_learner(dls, resnet18, metrics=error_rate)  # creates pretrained model
+        learn = vision_learner(dls,resnet18, metrics=error_rate)  # creates pretrained model
     else:
         # Defaults to ResNet50 architecture
-        learn = vision_learner(dls, resnet50, metrics=error_rate)  # creates pretrained model
+        learn = vision_learner(dls, 
+                               resnet50, 
+                               metrics=error_rate,
+                               loss_func=CrossEntropyLossFlat,#Flat(weight=weights_tensor)
+                               )  # creates pretrained model
 
     # learn.model.to(device)
     print(f'[INFO] This is Plankton Identifier version: {MODEL_NAME}')
@@ -76,7 +81,7 @@ def train_resnet50(MODEL_NAME, MODEL_TYPE, TRAIN_DATASET, BATCH_SIZE, OUTPUT_NAM
 
     # LR finder for frozen model
     learn.lr_find()
-    plt.savefig("doc/training/lr_find_frozen.png")
+    plt.savefig(os.path.join("models", models_root, "lr_find_frozen.png"))
     plt.close()
 
     def train_model(model_file, lr_slice, epochs, save_file, images_root, unfreeze=False):
