@@ -21,6 +21,7 @@ def conduct_plankton_inference(SOURCE_BASE_DIR, MODEL_NAME, model_weights, TRAIN
     print(f"[INFO] Started inference...", flush=True)
     start_time = time.time()
     np.random.seed(42)
+    random.seed(42)
 
     # Set the device to use GPU if available, else fall back to CPU
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -48,7 +49,7 @@ def conduct_plankton_inference(SOURCE_BASE_DIR, MODEL_NAME, model_weights, TRAIN
             pad_mode='zeros'),
             Normalize.from_stats(*imagenet_stats)]
     )
-    dls = block.dataloaders(TRAIN_DATASET, bs=BATCH_SIZE, num_workers=1) # Note: on Windows set to 0; can silently fail on HPC systems
+    dls = block.dataloaders(TRAIN_DATASET, bs=BATCH_SIZE, num_workers=8, pin_memory=True) # Note: on Windows set to 0; can silently fail on HPC systems
     learn = vision_learner(dls, resnet50, metrics=error_rate, pretrained=False)
     
     # Check for multiple GPUs and use DataParallel if available
@@ -136,8 +137,6 @@ def conduct_plankton_inference(SOURCE_BASE_DIR, MODEL_NAME, model_weights, TRAIN
 
                     # Subsample the images if subsample_percent is not 100%
                     if CLASSIFICATION_SUBSAMPLE < 100:
-                        random.seed(42)
-
                         # Seperate Background.tif from original list
                         # This file is used as a 'hack' for downstream processes, like getting geodata and timestamps
                         background_img = [img for img in imgs if img.name == "Background.tif"]

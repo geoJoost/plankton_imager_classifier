@@ -1,14 +1,14 @@
-# Plankton Imager Classifier
+# PlanktoShare Classifier
 [[`paper`](https://google.com)]
-[[`dataset`](https://google.com)]
+[[`dataset`](https://zenodo.org/records/19119233)]
 
-> The Plankton Imager Classifier predicts different plankton and non-plankton classes from data captured by the Plankton Imager ([Pi-10](https://www.planktonanalytics.com/)) sensor. 
+> The PlanktoShare classifier predicts different plankton and non-plankton classes from data captured by the Plankton Imager ([PI-10](https://www.planktonanalytics.com/)) sensor. 
 
-![Img](./doc/temp_plankton.png)
+![Img](./doc/plankton_pi10.png)
 
 ## Getting Started
 ### Data set-up
-1. Download model weights from PLACEHOLDER. Two options are available, the `ResNet50-detailed` being more extensive with 49 different possible classifications, and the `OSPAR` model predicting XX classes. Store these into `/models/`
+1. Download model weights from PLACEHOLDER. Two options are available, the `ResNet50-detailed` being more extensive with 49 different possible classifications, and the `OSPAR` model predicting 12 classes. Store these into `/models/`
 2. Store your raw, unaltered Pi10-data into a preferable location. We recommend storing it in `/data/`, but can be stored in any accessible location using the argument `--source_dir`
 3. For map creation, download the "EEA coastline for analysis" from the [European Environment Agency](https://www.eea.europa.eu/en/datahub/datahubitem-view/af40333f-9e94-4926-a4f0-0a787f1d2b8f). Store into `/data/`
 4. For map creation, download the "Marine and land zones: the union of world country boundaries and EEZ's (version 4)" from [Marineregions.org](https://www.marineregions.org/downloads.php#unioneezcountry). Store into `/data/`
@@ -18,7 +18,7 @@
 ### Anaconda set-up
 ```
 # install the classifier and its dependencies
-pip install git@github.com:geoJoost/plankton_imager_classifier.git
+pip install git@github.com:geoJoost/planktoshare.git
 
 # Setup the environment
 conda create --name plankton_imager
@@ -58,7 +58,7 @@ Options available in `main.py`:
 * `batch_size`: Number of samples to use within `inference.py`. This is highly dependent on the available memory within your PC/HPC. Default value of 32 is recommended for local machines. 
 
 ## Dataset Requirements
-Use the original dataset structure as provided by the Pi-10 imager without modifications.
+Use the original dataset structure as provided by the PI-10 imager without modifications.
 
 ### Raw
 ```
@@ -104,12 +104,37 @@ CRUISE_NAME_UNTARRED
 │   │   ├── RawImages\pia7.2024-06-24.1454+N00000004.tif
 ```
 
-## Future implementations
-1. Refactor `remove_corrupted_files.py` to increase processing speed
-2. Implement try-except statement within `inference.py`, with the except using `remove_corrupted_files.py`
-3. Implement OSPAR models
-4. Remove FastAI implementation
+## Inference Pipeline
 
+The PlanktoShare repository automates the processing of PI-10 data using custom classifiers. The inference script performs the following steps:
+1. Iterate through directory to process each `.tar` file.
+
+2. Temporarily extracts all `.tif` images from each `.tar`.
+
+3. Uses the classifier defined by the `model_name` argument to classify images.
+
+4. Detects and discards corrupted images.
+
+5. Generate outputs
+   For each 10-minute bin, creates:
+   - **Detailed CSV**: Includes per-image metadata:
+     - Image details (filename, datetime, EXIF geodata)
+     - Cruise information (cruise name, instrument code)
+     - Model predictions (class ID/label, confidence scores)
+   - **Summarized CSV**: Provides aggregated statistics:
+     - Total predicted images per class
+     - Density and summary statistics (e.g., average confidence)
+
+6. Stratified random sampling (n=100) per class for manual validation and creating training data.
+
+7. Automatically generates a summary report (examples in `/reports/`).
+
+
+## Future implementations
+* Remove FastAI implementation
 
 ## Known errors
-1. Error in `learn.load(MODEL_FILENAME, weights_only=False)` can be caused in older PyTorch versions. In this case, simply remove the `weights_only` argument.
+* Error in `learn.load(MODEL_FILENAME, weights_only=False)` can be caused in older PyTorch versions. In this case, simply remove the `weights_only` argument.
+
+---
+If you use this code or dataset, please cite our paper. For questions, feedback, or collaborations, feel free to contact us.
