@@ -1,5 +1,5 @@
 # PlanktoShare Classifier
-[[`paper`](https://google.com)]
+[[`paper`](https://doi.org/10.5194/essd-2026-215)]
 [[`dataset`](https://zenodo.org/records/19119233)]
 
 > The PlanktoShare classifier predicts different plankton and non-plankton classes from data captured by the Plankton Imager ([PI-10](https://www.planktonanalytics.com/)) sensor. 
@@ -17,8 +17,8 @@
 
 ### Anaconda set-up
 ```
-# install the classifier and its dependencies
-pip install git@github.com:geoJoost/planktoshare.git
+# install the repository
+git clone git@github.com:geoJoost/planktoshare.git
 
 # Setup the environment
 conda create --name plankton_imager
