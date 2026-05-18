@@ -16,32 +16,31 @@ from src.utils import save_data_visualizations,  save_evaluation_visualizations
 ## Hyperparameters ##
 STAGE1_PARAMS = [ # Manually define grid search values
     # (lr_slice, epochs, suffix)
-    (slice(9e-3),           1,      '_stage1_TEST'),
-    # (slice(9e-3), 1, '_stage1_TEST')
-    # (slice(9e-3), 20, 'stage1_run01'),
-    # (slice(9e-2), 20, 'stage1_run02'),
-    # (slice(6e-2), 20, 'stage1_run03'),
-    # (slice(5e-3), 20, 'stage1_run04'),
-    # (slice(10e-3), 20, 'stage1_run05'),
-    # (slice(9e-3), 50, 'stage1_run06'),
-    # (slice(9e-2), 50, 'stage1_run07'),
-    # (slice(6e-2), 50, 'stage1_run08'),
-    # (slice(4e-4), 20, 'stage1_run09'),
-    # (slice(7e-4), 20, 'stage1_run10'),
+    (slice(9e-3), 1, '_stage1_TEST')
+    (slice(9e-3), 20, 'stage1_run01'),
+    (slice(9e-2), 20, 'stage1_run02'),
+    (slice(6e-2), 20, 'stage1_run03'),
+    (slice(5e-3), 20, 'stage1_run04'),
+    (slice(10e-3), 20, 'stage1_run05'),
+    (slice(9e-3), 50, 'stage1_run06'),
+    (slice(9e-2), 50, 'stage1_run07'),
+    (slice(6e-2), 50, 'stage1_run08'),
+    (slice(4e-4), 20, 'stage1_run09'),
+    (slice(7e-4), 20, 'stage1_run10'),
 ]
 
 STAGE2_PARAMS = [
-    (slice(9e-3),           1,      '_stage2_TEST'),
-    # (slice(1e-6, 1e-4), 20, 'stage2_01'),
-    # (slice(3e-6, 3e-4), 20, 'stage2_02'),
-    # (slice(3e-5, 3e-3), 20, 'stage2_03'),
-    # (slice(3e-7, 3e-5), 20, 'stage2_04'),
-    # (slice(10e-4, 10e-3), 10, 'stage2_05'),
-    # (slice(10e-4, 10e-3), 20, 'stage2_06'),
-    # (slice(10e-4, 10e-3), 10, 'stage2_07'),
-    # (slice(10e-4, 10e-3), 50, 'stage2_08'),
-    # (slice(10e-4, 10e-3), 20, 'stage2_09'),
-    # (slice(3e-7, 3e-5), 50, 'stage2_10')
+    # (lr_slice, epochs, suffix)
+    (slice(1e-6, 1e-4), 20, 'stage2_01'),
+    (slice(3e-6, 3e-4), 20, 'stage2_02'),
+    (slice(3e-5, 3e-3), 20, 'stage2_03'),
+    (slice(3e-7, 3e-5), 20, 'stage2_04'),
+    (slice(10e-4, 10e-3), 10, 'stage2_05'),
+    (slice(10e-4, 10e-3), 20, 'stage2_06'),
+    (slice(10e-4, 10e-3), 10, 'stage2_07'),
+    (slice(10e-4, 10e-3), 50, 'stage2_08'),
+    (slice(10e-4, 10e-3), 20, 'stage2_09'),
+    (slice(3e-7, 3e-5), 50, 'stage2_10')
 ]
 
 ## Setup ##
@@ -193,10 +192,10 @@ def train_resnet(MODEL_NAME: str, MODEL_TYPE: str, TRAIN_DATASET: str, BATCH_SIZ
 
     # Learner
     learn = build_learner(dls, MODEL_TYPE, models_dir)
-    print(f"[INFO] Model:      {MODEL_NAME}")
-    print(f"[INFO] Arch:       {MODEL_TYPE}")
+    print(f"[INFO] Model: {MODEL_NAME}")
+    print(f"[INFO] Arch: {MODEL_TYPE}")
     print(f"[INFO] Batch size: {BATCH_SIZE}")
-    print(f"[INFO] Loss:       {learn.loss_func}")
+    print(f"[INFO] Loss: {learn.loss_func}")
 
     # Save pretrained weights as stage 1 starting point
     model_default = f'{MODEL_TYPE}_{MODEL_NAME}_pretrained'
@@ -221,90 +220,3 @@ def train_resnet(MODEL_NAME: str, MODEL_TYPE: str, TRAIN_DATASET: str, BATCH_SIZ
 
     # Evaluation
     save_evaluation_visualizations(learn, images_dir)
-
-    # def train_model(model_file, lr_slice, epochs, save_file, images_root, unfreeze=False):
-    #     """
-    #     Train a model with given parameters.
-
-    #     Args:
-    #         model_file (str): Path to the model file to load.
-    #         lr_slice (slice): Learning rate slice.
-    #         epochs (int): Number of epochs to train.
-    #         save_file (str): Path to save the trained model.
-    #         unfreeze (bool): Whether to unfreeze the model before training.
-    #     """
-    #     print(f"[INFO] Started training with settings: "
-    #         f"Learning rate: {lr_slice} "
-    #         f"Number of epochs: {epochs} "
-    #         f"Output: {save_file}")
-
-    #     start_time = time.time()
-
-    #     # Load pre-trained (phase-1) OR best model from phase-1
-    #     learn.load(model_file)
-
-    #     if unfreeze: # For phase-2
-    #         learn.unfreeze()
-
-    #     # Perform one cycle learning
-    #     learn.fit_one_cycle(epochs, lr_slice, cbs=SaveModelCallback(monitor='valid_loss', with_opt=True, fname='TempBestModel'))
-        
-    #     # Update the current best performing model
-    #     learn.load('TempBestModel')
-    #     learn.save(save_file)
-
-    #     # Save losses as figure
-    #     learn.recorder.plot_loss()
-    #     plt.savefig(images_dir / f"{Path(save_file).name}_losses.png")
-    #     plt.close()
-
-    #     print(f"[INFO] Model {save_file} training completed in {(time.time() - start_time) / 60:.2f} minutes")
-
-    # # Stage 1 training loops
-    # print("[INFO] Starting Stage 1 training...\n")
-
-    # stage1_models = {} # Save losses to find the most suited model
-
-    # for lr_slice, epochs, suffix in stage1_params:
-    #     model_file = f"{MODEL_TYPE}_{MODEL_NAME}_{suffix}"
-    #     train_model(model_default, lr_slice, epochs, model_file, images_dir, unfreeze=False)
-
-    #     # Get the validation loss
-    #     # Output in [last epoch][train_loss, val_loss, err_rate]
-    #     stage1_models[model_file] = learn.recorder.values[-1][1] # [last epoch][val_loss]
-
-    # # Select the best stage-1 model based on validation loss
-    # best_stage1_model = min(stage1_models, key=stage1_models.get)
-    # print(f"[INFO] From stage-1, the best model is: {best_stage1_model}")
-
-    # # Load the best performing stage-1 model, rename, and save it
-    # learn.load(best_stage1_model)
-    # learn.save(f"{best_stage1_model}_final")
-
-    # # Stage 2 training loops
-    # # Again, manually define hyperparameters
-
-
-    # stage2_models = {} # Save losses to find the final model
-
-    # for lr_slice, epochs, suffix in stage2_params:
-    #     model_file = f"{MODEL_TYPE}_{MODEL_NAME}_{suffix}"
-
-    #     # Note1: Default model to start from is now the best performing model from first stage
-    #     # Note2: Model is unfrozen now
-    #     train_model(best_stage1_model, lr_slice, epochs, model_file, images_dir, unfreeze=True)
-
-    #     # Load the model to get its validation loss
-    #     # Output in [last epoch][train_loss, val_loss, err_rate]
-    #     stage2_models[model_file] = learn.recorder.values[-1][1] # [last epoch][val_loss]
-
-    # # Select the best model based on validation loss
-    # best_stage2_model = min(stage2_models, key=stage2_models.get)
-    # print(f"[INFO] From stage-2, the best model is: {best_stage2_model}")
-
-    # # Load the most suited model, rename, and save it
-    # learn.load(best_stage2_model)
-    # learn.save(f"{best_stage2_model}_final")
-
-    # # Evaluation
-    # save_evaluation_visualizations(learn, images_dir)
