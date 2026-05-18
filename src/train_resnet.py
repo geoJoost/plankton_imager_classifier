@@ -1,8 +1,8 @@
-# Plankton Identifier - Classification from plankton imager
-# This script provides code to train and run a CNN to classify plankton from images from the plankton imager.
-# It treats this problem as a classification task. The labels are extracted from the folder names.
+""" Script for training the PlanktoShare models based on Resnet18/ResNet50 architecture """
 
-# Import modules and set parameters
+# PlanktoShare: Classification of zooplankton from the Plankton Imager (pi-10) using ResNet 
+# The label names for groups are extracted from the folder names.
+
 import fastai
 from fastai.vision.all import *
 import torch
@@ -13,31 +13,62 @@ import time
 # Custom imports
 from src.utils import save_data_visualizations,  save_evaluation_visualizations
 
-def train_resnet50(MODEL_NAME, MODEL_TYPE, TRAIN_DATASET, BATCH_SIZE):
-    np.random.seed(3)
+## Hyperparameters ##
+STAGE1_PARAMS = [ # Manually define grid search values
+    # (lr_slice, epochs, suffix)
+    (slice(9e-3),           1,      '_stage1_TEST'),
+    # (slice(9e-3), 1, '_stage1_TEST')
+    # (slice(9e-3), 20, 'stage1_run01'),
+    # (slice(9e-2), 20, 'stage1_run02'),
+    # (slice(6e-2), 20, 'stage1_run03'),
+    # (slice(5e-3), 20, 'stage1_run04'),
+    # (slice(10e-3), 20, 'stage1_run05'),
+    # (slice(9e-3), 50, 'stage1_run06'),
+    # (slice(9e-2), 50, 'stage1_run07'),
+    # (slice(6e-2), 50, 'stage1_run08'),
+    # (slice(4e-4), 20, 'stage1_run09'),
+    # (slice(7e-4), 20, 'stage1_run10'),
+]
 
+STAGE2_PARAMS = [
+    (slice(9e-3),           1,      '_stage2_TEST'),
+    # (slice(1e-6, 1e-4), 20, 'stage2_01'),
+    # (slice(3e-6, 3e-4), 20, 'stage2_02'),
+    # (slice(3e-5, 3e-3), 20, 'stage2_03'),
+    # (slice(3e-7, 3e-5), 20, 'stage2_04'),
+    # (slice(10e-4, 10e-3), 10, 'stage2_05'),
+    # (slice(10e-4, 10e-3), 20, 'stage2_06'),
+    # (slice(10e-4, 10e-3), 10, 'stage2_07'),
+    # (slice(10e-4, 10e-3), 50, 'stage2_08'),
+    # (slice(10e-4, 10e-3), 20, 'stage2_09'),
+    # (slice(3e-7, 3e-5), 50, 'stage2_10')
+]
+
+## Setup ##
+def create_run_dirs(MODEL_NAME: str) -> tuple[Path, Path]:
+    """Create timestamped output directories for models and training images."""
     # Create new folder in /models/ to save .pth files
     # FastAI hard-codes the model part, so have to seperate this for re-use down the line
     timestamp = datetime.today().strftime('%Y%m%d_%H%M')
-    models_root = f"{timestamp}_{MODEL_NAME}" # Use today's date for future note keeping
-    os.makedirs(os.path.join('models', models_root), exist_ok=True)
+    run_name = f"{timestamp}_{MODEL_NAME}"
 
-    images_root = os.path.join('train', models_root)
-    os.makedirs(images_root, exist_ok=True)
+    models_dir = Path('models') / run_name
+    images_dir = Path('train') / run_name
+    models_dir.mkdir(parents=True, exist_ok=True)
+    images_dir.mkdir(parents=True, exist_ok=True)
 
-    # Set the device to use GPU if available, else fall back to CPU
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print(f"[INFO] Device used: {device}")
-    print(f'[INFO] You are using FastAI version: {fastai.__version__}')
+    return models_dir, images_dir
 
-    # Create dataset
+def build_dataloaders(TRAIN_DATASET: str, BATCH_SIZE: int):
+    """Create the FastAI DataLoaders with augmentation and normalization."""
     block = DataBlock(
-        blocks=(ImageBlock, CategoryBlock),  # for regression, change this CategoryBlock
-        splitter=RandomSplitter(valid_pct=0.2, seed=42), # 80-20 split; added seed
+        blocks=(ImageBlock, CategoryBlock),
+        splitter=RandomSplitter(valid_pct=0.2, seed=42),
         get_items=get_image_files,
         get_y=parent_label,
-        item_tfms=Resize(300, ResizeMethod.Pad, pad_mode='zeros'),  # see page 73 book
-        batch_tfms=[*aug_transforms(
+        item_tfms=Resize(300, ResizeMethod.Pad, pad_mode='zeros'),
+        batch_tfms=[
+            *aug_transforms(
                 mult=1.0,
                 do_flip=True,
                 flip_vert=True,
@@ -53,141 +84,227 @@ def train_resnet50(MODEL_NAME, MODEL_TYPE, TRAIN_DATASET, BATCH_SIZE):
             Normalize.from_stats(*imagenet_stats)
         ]
     )
-    dls = block.dataloaders(TRAIN_DATASET, bs=BATCH_SIZE, num_workers=0) # num_workers NEEDS to be zero for the code to work on Windows; see https://github.com/fastai/fastai/issues/2899
+    # num_workers must be 0 on Windows: https://github.com/fastai/fastai/issues/2899
+    return block.dataloaders(TRAIN_DATASET, bs=BATCH_SIZE, num_workers=0)
 
-    # Create various data visualizations for context
-    save_data_visualizations(dls, images_root)
+def build_learner(dls, MODEL_TYPE: str, models_dir: Path):
+    """Create and return a FastAI vision learner for the given architecture."""
+    # FastAI loss default: FlattenedLoss of CrossEntropyLoss()
+    arch = resnet18 if MODEL_TYPE == "ResNet18" else resnet50
+    learn = vision_learner(dls, arch, metrics=error_rate, model_dir=models_dir)
+    return learn
 
-    # Create Learner
-    if MODEL_TYPE == "ResNet18":
-        learn = vision_learner(dls,resnet18, metrics=error_rate)  # creates pretrained model
-    else:
-        # Defaults to ResNet50 architecture
-        learn = vision_learner(dls, 
-                               resnet50, 
-                               metrics=error_rate,
-                               loss_func=CrossEntropyLossFlat,#Flat(weight=weights_tensor)
-                               )  # creates pretrained model
 
-    # learn.model.to(device)
-    print(f'[INFO] This is Plankton Identifier version: {MODEL_NAME}')
-    print(f'[INFO] Training new models using {MODEL_TYPE} architecture')
-    print(f'[INFO] The batchsize is set at: {BATCH_SIZE}')
-    print(f'[INFO] The loss function is: {learn.loss_func}')  # Double check current loss func
+## Training ##
+def train_model(learn, model_file: str, lr_slice, epochs: int, save_file: str,
+                images_dir: Path, unfreeze: bool = False):
+    """
+    Train the model for one stage with given parameters.
 
-    # Save pretrained model
-    model_default = os.path.join(models_root, f'{MODEL_TYPE}_{MODEL_NAME}_stage-1_00')
-    learn.save(model_default) # Saves pretrained model, for repetitive trials
+    Args:
+        learn:       FastAI Learner object.
+        model_file:  Model filename to load as starting point.
+        lr_slice:    Learning rate slice for fit_one_cycle.
+        epochs:      Number of training epochs.
+        save_file:   Filename to save the best model to.
+        images_dir:  Directory to save loss plots.
+        unfreeze:    Whether to unfreeze all layers before training (stage 2).
+    """
+    print(f"[INFO] Training | lr: {lr_slice} | epochs: {epochs} | output: {save_file}")
+    start_time = time.time()
 
-    # LR finder for frozen model
-    learn.lr_find()
-    plt.savefig(os.path.join("models", models_root, "lr_find_frozen.png"))
+    learn.load(model_file)
+
+    if unfreeze:
+        learn.unfreeze()
+
+    learn.fit_one_cycle(
+        epochs,
+        lr_slice,
+        cbs=SaveModelCallback(monitor='valid_loss', with_opt=True, fname='TempBestModel')
+    )
+
+    learn.load('TempBestModel')
+    learn.save(save_file)
+
+    learn.recorder.plot_loss()
+    plt.savefig(images_dir / f"{save_file}_losses.png")
     plt.close()
 
-    def train_model(model_file, lr_slice, epochs, save_file, images_root, unfreeze=False):
-        """
-        Train a model with given parameters.
+    elapsed = (time.time() - start_time) / 60
+    print(f"[INFO] Completed {save_file} in {elapsed:.2f} minutes")
 
-        Args:
-            model_file (str): Path to the model file to load.
-            lr_slice (slice): Learning rate slice.
-            epochs (int): Number of epochs to train.
-            save_file (str): Path to save the trained model.
-            unfreeze (bool): Whether to unfreeze the model before training.
-        """
-        print(f"[INFO] Started training with settings: \nLearning rate: {lr_slice}\nNumber of epochs: {epochs}\nOutput: {save_file}")
-        start_time = time.time()
 
-        # Load pre-trained (phase-1) OR best model from phase-1
-        learn.load(model_file)
+def run_stage(
+        learn,
+        stage_params: list, 
+        start_model: str,
+        MODEL_TYPE: str,
+        MODEL_NAME: str, 
+        images_dir: Path, 
+        unfreeze: bool
+    ) -> str:
+    """
+    Run a full grid search stage and return the best model filename.
 
-        if unfreeze: # For phase-2
-            learn.unfreeze()
+    Args:
+        learn:        FastAI Learner object.
+        stage_params: List of (lr_slice, epochs, suffix) tuples.
+        start_model:  Model filename to use as the starting point for each run.
+        MODEL_TYPE:   Architecture name, used in output filenames.
+        MODEL_NAME:   Model name, used in output filenames.
+        images_dir:   Directory to save loss plots.
+        unfreeze:     Whether to unfreeze layers (True for stage 2).
 
-        # Perform one cycle learning
-        learn.fit_one_cycle(epochs, lr_slice, cbs=SaveModelCallback(monitor='valid_loss', with_opt=True, fname='TempBestModel'))
-        
-        # Update the current best performing model
-        learn.load('TempBestModel')
-        learn.save(save_file)
+    Returns:
+        Filename of the best model based on validation loss.
+    """
+    stage_models = {}
 
-        # Save losses as figure
-        learn.recorder.plot_loss()
-        plt.savefig(os.path.join(images_root, f"{save_file}_losses.png"))
-        plt.close()
+    for lr_slice, epochs, suffix in stage_params:
+        model_file = f"{MODEL_TYPE}_{MODEL_NAME}{suffix}"
+        train_model(learn, start_model, lr_slice, epochs, model_file, images_dir, unfreeze=unfreeze)
 
-        print(f"[INFO] Model {save_file} training completed in {(time.time() - start_time) / 60:.2f} minutes")
+        # Read validation loss from last epoch: [last_epoch][train_loss, val_loss, err_rate]
+        train_loss, val_loss, err_rate = learn.recorder.values[-1]
+        print(f"[INFO] Model: {model_file} (val_loss: {val_loss:.4f})")
+        stage_models[model_file] = val_loss
 
-    # Stage 1 training loops
-    print("[INFO] Starting Stage 1 training...\n")
-    stage1_params = [ # Manually define grid search values
-        # (slice(9e-3), 1, '_stage1_TEST'),
-        (slice(9e-3), 20, '_stage1_run01'),
-        (slice(9e-2), 20, '_stage1_run02'),
-        (slice(6e-2), 20, '_stage1_run03'),
-        (slice(5e-3), 20, '_stage1_run04'),
-        (slice(10e-3), 20, '_stage1_run05'),
-        (slice(9e-3), 50, '_stage1_run06'),
-        (slice(9e-2), 50, '_stage1_run07'),
-        (slice(6e-2), 50, '_stage1_run08'),
-        (slice(4e-4), 20, '_stage1_run09'),
-        (slice(7e-4), 20, '_stage1_run10'),
-    ]
-    stage1_models = {} # Save losses to find the most suited model
+    best_model = min(stage_models, key=stage_models.get)
+    print(f"[INFO] Best model: {best_model} (val_loss: {stage_models[best_model]:.4f})")
+    return best_model
 
-    for lr_slice, epochs, suffix in stage1_params:
-        model_file = os.path.join(models_root, f"{MODEL_TYPE}_{MODEL_NAME}_{suffix}")
-        train_model(model_default, lr_slice, epochs, model_file, images_root, unfreeze=False)
 
-        # Load the model to get its validation loss
-        learn.load(model_file)
-        train_loss, val_loss, err_rate = learn.recorder.values[0] # Selects only final values
-        stage1_models[model_file] = val_loss
+## Entry point ##
+def train_resnet(MODEL_NAME: str, MODEL_TYPE: str, TRAIN_DATASET: str, BATCH_SIZE: int):
+    np.random.seed(3)
 
-    # Select the best stage-1 model based on validation loss
-    best_stage1_model = min(stage1_models, key=stage1_models.get)
-    print(f"[INFO] From stage-1, the best model is: {best_stage1_model}")
+    # Set the device to use GPU if available, else fall back to CPU
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(f"[INFO] Device used: {device}")
+    print(f'[INFO] FastAI version: {fastai.__version__}')
+    
+    # Directories
+    models_dir, images_dir = create_run_dirs(MODEL_NAME)
 
-    # Load the best performing stage-1 model, rename, and save it
-    learn.load(best_stage1_model)
-    learn.save(f"{best_stage1_model}_final")
+    # Data
+    dls = build_dataloaders(TRAIN_DATASET, BATCH_SIZE)
+    save_data_visualizations(dls, images_dir)
 
-    # Stage 2 training loops
-    # Again, manually define hyperparameters
-    stage2_params = [
-        # (slice(9e-3), 1, '_stage2_TEST'),
-        (slice(1e-6, 1e-4), 20, '_stage2_01'),
-        (slice(3e-6, 3e-4), 20, '_stage2_02'),
-        (slice(3e-5, 3e-3), 20, '_stage2_03'),
-        (slice(3e-7, 3e-5), 20, '_stage2_04'),
-        (slice(10e-4, 10e-3), 10, '_stage2_05'),
-        (slice(10e-4, 10e-3), 20, '_stage2_06'),
-        (slice(10e-4, 10e-3), 10, '_stage2_07'),
-        (slice(10e-4, 10e-3), 50, '_stage2_08'),
-        (slice(10e-4, 10e-3), 20, '_stage2_09'),
-        (slice(3e-7, 3e-5), 50, '_stage2_10')
-    ]
+    # Learner
+    learn = build_learner(dls, MODEL_TYPE, models_dir)
+    print(f"[INFO] Model:      {MODEL_NAME}")
+    print(f"[INFO] Arch:       {MODEL_TYPE}")
+    print(f"[INFO] Batch size: {BATCH_SIZE}")
+    print(f"[INFO] Loss:       {learn.loss_func}")
 
-    stage2_models = {} # Save losses to find the final model
+    # Save pretrained weights as stage 1 starting point
+    model_default = f'{MODEL_TYPE}_{MODEL_NAME}_pretrained'
+    learn.save(model_default)
 
-    for lr_slice, epochs, suffix in stage2_params:
-        model_file = MODEL_TYPE + MODEL_NAME + suffix
-        # Note1: Default model to start from is now the best performing model from first stage
-        # Note2: Model is unfrozen now
-        train_model(best_stage1_model, lr_slice, epochs, model_file, images_root, unfreeze=True)
+    # Learning rate finder for frozen model
+    learn.lr_find()
+    plt.savefig(models_dir / "lr_find_frozen.png")
+    plt.close()
 
-        # Load the model to get its validation loss
-        learn.load(model_file)
-        train_loss, val_loss, err_rate = learn.recorder.values[0]
-        stage2_models[model_file] = val_loss
+    # Stage 1: frozen backbone
+    print("\n[INFO] Starting Stage 1 (frozen)...")
+    best_stage1 = run_stage(learn, STAGE1_PARAMS, model_default, MODEL_TYPE, MODEL_NAME, images_dir, unfreeze=False)
+    learn.load(best_stage1)
+    learn.save(f"{best_stage1}_final")
 
-    # Select the best model based on validation loss
-    best_stage2_model = min(stage2_models, key=stage2_models.get)
-    print(f"[INFO] From stage-2, the best model is: {best_stage2_model}")
-
-    # Load the most suited model, rename, and save it
-    learn.load(best_stage2_model)
-    learn.save(f"{best_stage2_model}_final")
+    # Stage 2: unfrozen backbone
+    print("\n[INFO] Starting Stage 2 (unfrozen)...")
+    best_stage2 = run_stage(learn, STAGE2_PARAMS, best_stage1, MODEL_TYPE, MODEL_NAME, images_dir, unfreeze=True)
+    learn.load(best_stage2)
+    learn.save(f"{best_stage2}_final")
 
     # Evaluation
-    save_evaluation_visualizations(learn, images_root)
+    save_evaluation_visualizations(learn, images_dir)
+
+    # def train_model(model_file, lr_slice, epochs, save_file, images_root, unfreeze=False):
+    #     """
+    #     Train a model with given parameters.
+
+    #     Args:
+    #         model_file (str): Path to the model file to load.
+    #         lr_slice (slice): Learning rate slice.
+    #         epochs (int): Number of epochs to train.
+    #         save_file (str): Path to save the trained model.
+    #         unfreeze (bool): Whether to unfreeze the model before training.
+    #     """
+    #     print(f"[INFO] Started training with settings: "
+    #         f"Learning rate: {lr_slice} "
+    #         f"Number of epochs: {epochs} "
+    #         f"Output: {save_file}")
+
+    #     start_time = time.time()
+
+    #     # Load pre-trained (phase-1) OR best model from phase-1
+    #     learn.load(model_file)
+
+    #     if unfreeze: # For phase-2
+    #         learn.unfreeze()
+
+    #     # Perform one cycle learning
+    #     learn.fit_one_cycle(epochs, lr_slice, cbs=SaveModelCallback(monitor='valid_loss', with_opt=True, fname='TempBestModel'))
+        
+    #     # Update the current best performing model
+    #     learn.load('TempBestModel')
+    #     learn.save(save_file)
+
+    #     # Save losses as figure
+    #     learn.recorder.plot_loss()
+    #     plt.savefig(images_dir / f"{Path(save_file).name}_losses.png")
+    #     plt.close()
+
+    #     print(f"[INFO] Model {save_file} training completed in {(time.time() - start_time) / 60:.2f} minutes")
+
+    # # Stage 1 training loops
+    # print("[INFO] Starting Stage 1 training...\n")
+
+    # stage1_models = {} # Save losses to find the most suited model
+
+    # for lr_slice, epochs, suffix in stage1_params:
+    #     model_file = f"{MODEL_TYPE}_{MODEL_NAME}_{suffix}"
+    #     train_model(model_default, lr_slice, epochs, model_file, images_dir, unfreeze=False)
+
+    #     # Get the validation loss
+    #     # Output in [last epoch][train_loss, val_loss, err_rate]
+    #     stage1_models[model_file] = learn.recorder.values[-1][1] # [last epoch][val_loss]
+
+    # # Select the best stage-1 model based on validation loss
+    # best_stage1_model = min(stage1_models, key=stage1_models.get)
+    # print(f"[INFO] From stage-1, the best model is: {best_stage1_model}")
+
+    # # Load the best performing stage-1 model, rename, and save it
+    # learn.load(best_stage1_model)
+    # learn.save(f"{best_stage1_model}_final")
+
+    # # Stage 2 training loops
+    # # Again, manually define hyperparameters
+
+
+    # stage2_models = {} # Save losses to find the final model
+
+    # for lr_slice, epochs, suffix in stage2_params:
+    #     model_file = f"{MODEL_TYPE}_{MODEL_NAME}_{suffix}"
+
+    #     # Note1: Default model to start from is now the best performing model from first stage
+    #     # Note2: Model is unfrozen now
+    #     train_model(best_stage1_model, lr_slice, epochs, model_file, images_dir, unfreeze=True)
+
+    #     # Load the model to get its validation loss
+    #     # Output in [last epoch][train_loss, val_loss, err_rate]
+    #     stage2_models[model_file] = learn.recorder.values[-1][1] # [last epoch][val_loss]
+
+    # # Select the best model based on validation loss
+    # best_stage2_model = min(stage2_models, key=stage2_models.get)
+    # print(f"[INFO] From stage-2, the best model is: {best_stage2_model}")
+
+    # # Load the most suited model, rename, and save it
+    # learn.load(best_stage2_model)
+    # learn.save(f"{best_stage2_model}_final")
+
+    # # Evaluation
+    # save_evaluation_visualizations(learn, images_dir)
