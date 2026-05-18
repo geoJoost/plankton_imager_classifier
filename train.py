@@ -7,7 +7,6 @@ from src.train_resnet import train_resnet
 
 def train(MODEL_NAME, MODEL_TYPE, TRAIN_DATASET, BATCH_SIZE):
     # Plot simple figure describing the training set
-    # TODO: Add print statement of dataframe
     analyze_tif_files(TRAIN_DATASET)
 
     # Plot examples of each class
@@ -24,7 +23,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--model_name",
         type=str,
-        default="PlanktoShare",
+        default="PlanktoShare_v1",
         help="Name of the model"
     )
     parser.add_argument(
@@ -37,7 +36,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--train_dataset",
         type=str,
-        default="data/DETAILED_merged_sample",
+        default="data/PlanktoShare_v1",
         help="Path to the training dataset"
     )
     parser.add_argument(

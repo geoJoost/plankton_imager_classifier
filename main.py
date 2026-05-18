@@ -71,7 +71,7 @@ if __name__ == "__main__":
     else:
         # Default option is the ResNet50 predicting 49 different plankton and non-plankton classes
         model_weights = Path('Plankton_imager_v01_stage-2_Best')
-        TRAIN_DATASET = Path('data/DETAILED_merged')
+        TRAIN_DATASET = Path('data/PlanktoShare_v1')
         MODEL_NAME = "ResNet50-Detailed" # Reset the variable in case different spelling is used
         print(f"[INFO] User has chosen to use the {MODEL_NAME} model with weights: {model_weights}")
     

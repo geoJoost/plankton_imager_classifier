@@ -129,6 +129,37 @@ The PlanktoShare repository automates the processing of PI-10 data using custom 
 
 7. Automatically generates a summary report (examples in `/reports/`).
 
+## Training
+To train new models, organize your training dataset as follows:
+
+```bash
+data/PlanktoShare/
+├── Crustacea_Copepoda_Calanoida/
+│   ├── img_0001.tif
+│   ├── img_0002.tif
+│   └── ...
+├── Detritus/
+│   ├── img_0001.tif
+│   └── ...
+├── Myzozoa_Dinophyceae/
+│   └── ...
+├── Echinodermata_Echinoidea-larvae/
+│   └── ...
+├── Crustacea_Cladocera/
+│   └── ...
+└── .../
+```
+
+Run the training script from the command line using the following arguments:
+
+```bash
+python train.py \
+    --model-name PlanktoShare \
+    --model-type ResNet50 \
+    --train-dataset data/PlanktoShare \
+    --batch-size 128
+```
+
 
 ## Future implementations
 * Remove FastAI implementation

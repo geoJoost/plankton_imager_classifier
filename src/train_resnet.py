@@ -133,7 +133,6 @@ def train_model(learn, model_file: str, lr_slice, epochs: int, save_file: str,
     elapsed = (time.time() - start_time) / 60
     print(f"[INFO] Completed {save_file} in {elapsed:.2f} minutes")
 
-
 def run_stage(
         learn,
         stage_params: list, 
@@ -176,6 +175,9 @@ def run_stage(
 
 ## Entry point ##
 def train_resnet(MODEL_NAME: str, MODEL_TYPE: str, TRAIN_DATASET: str, BATCH_SIZE: int):
+    print("=" * 60 + "\n")
+    print(f"[INFO] Started training script...")
+
     np.random.seed(3)
 
     # Set the device to use GPU if available, else fall back to CPU

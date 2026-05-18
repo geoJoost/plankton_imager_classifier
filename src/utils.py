@@ -33,7 +33,7 @@ def analyze_tif_files(main_directory):
             subdirectory_counts[subdirectory_name] = count
 
     # Print the total count
-    print(f"Total number of images in {main_directory}: {tif_count:,}")
+    print(f"[INFO] Total number of images in {main_directory}: {tif_count:,}")
 
     # Create DataFrame from subdirectory counts and sort
     df = pd.DataFrame(list(subdirectory_counts.items()), columns=['Label', 'Count'])
@@ -51,11 +51,11 @@ def analyze_tif_files(main_directory):
     plt.xticks(rotation=90)
 
     plt.tight_layout()
-    filepath = "doc/dataset_description.png"
-    plt.savefig(filepath)
-    # plt.show()
 
-    print(f"[INFO] Printed figure describing class distribution in training dataset at {filepath}")
+    output_path = "doc/dataset_description.png"
+    plt.savefig(output_path)
+    print(f"[INFO] Saved dataset description to: {output_path}")
+
 
 def plot_category_examples(data_path, output_path='doc/train_example.png'):
     """
@@ -117,7 +117,7 @@ def plot_category_examples(data_path, output_path='doc/train_example.png'):
 
     # Save the figure
     plt.savefig(output_path, bbox_inches='tight', dpi=100)
-    print(f"[INFO] Saved category visualization to {output_path}")
+    print(f"[INFO] Saved examples images from each class to: {output_path}")
     plt.close()
 
 def save_data_visualizations(dls, images_root):
@@ -153,7 +153,7 @@ def save_data_visualizations(dls, images_root):
     plt.savefig(os.path.join(images_root, '04_random_sample.png'), bbox_inches='tight', dpi=100)
     plt.close(fig)
 
-    print(f"[INFO] All training/validation examples saved to {images_root}.")
+    print(f"[INFO] Training / validation examples saved to: {images_root}")
 
 def save_evaluation_visualizations(learn, images_root):
     """
