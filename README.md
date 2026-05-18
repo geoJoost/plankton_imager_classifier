@@ -154,10 +154,10 @@ Run the training script from the command line using the following arguments:
 
 ```bash
 python train.py \
-    --model-name PlanktoShare \
-    --model-type ResNet50 \
-    --train-dataset data/PlanktoShare \
-    --batch-size 128
+    --model_name PlanktoShare \
+    --model_type ResNet50 \
+    --train_dataset data/PlanktoShare \
+    --batch_size 32
 ```
 
 
