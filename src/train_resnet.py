@@ -9,6 +9,7 @@ import torch
 import numpy as np
 from pathlib import Path
 import time
+from typing import Tuple # Use Typing for Python <3.9 instead of 'tuple'
 
 # Custom imports
 from src.utils import save_data_visualizations,  save_evaluation_visualizations
@@ -44,7 +45,7 @@ STAGE2_PARAMS = [
 ]
 
 ## Setup ##
-def create_run_dirs(MODEL_NAME: str) -> tuple[Path, Path]:
+def create_run_dirs(MODEL_NAME: str) -> Tuple[Path, Path]:
     """Create timestamped output directories for models and training images."""
     # Create new folder in /models/ to save .pth files
     # FastAI hard-codes the model part, so have to seperate this for re-use down the line
