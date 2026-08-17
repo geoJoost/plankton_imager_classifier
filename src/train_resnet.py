@@ -17,7 +17,6 @@ from src.utils import save_data_visualizations,  save_evaluation_visualizations
 ## Hyperparameters ##
 STAGE1_PARAMS = [ # Manually define grid search values
     # (lr_slice, epochs, suffix)
-    (slice(9e-3), 1, '_stage1_TEST')
     (slice(9e-3), 20, 'stage1_run01'),
     (slice(9e-2), 20, 'stage1_run02'),
     (slice(6e-2), 20, 'stage1_run03'),
